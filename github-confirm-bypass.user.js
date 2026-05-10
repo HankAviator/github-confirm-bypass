@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub Confirm Bypass
 // @namespace    https://github.com/HankAviator/github-confirm-bypass
-// @version      0.1.0
+// @version      0.1.1
 // @description  Fill GitHub dangerous-action confirmation inputs automatically.
 // @author       HankAviator
 // @match        https://github.com/*
