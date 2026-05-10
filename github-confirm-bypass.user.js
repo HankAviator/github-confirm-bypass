@@ -117,8 +117,55 @@
   }
 
   function notifyInputChanged(input) {
-    input.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: input.value }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
+    const inputEventOptions = {
+      bubbles: true,
+      composed: true,
+      inputType: "insertText",
+      data: input.value,
+    };
+
+    try {
+      input.dispatchEvent(new InputEvent("beforeinput", inputEventOptions));
+      input.dispatchEvent(new InputEvent("input", inputEventOptions));
+    } catch (_error) {
+      input.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
+    }
+
+    input.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+    input.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true, composed: true }));
+  }
+
+  function clearInvalidState(input) {
+    input.removeAttribute("invalid");
+    input.setAttribute("aria-invalid", "false");
+
+    const field = input.closest("primer-text-field");
+    if (field) {
+      field.removeAttribute("invalid");
+    }
+  }
+
+  function enableConfirmationButtons(input) {
+    const scope = input.closest("dialog, form") || document;
+    const buttonSelectors = [
+      "button.js-repo-delete-proceed-button",
+      "button[data-test-selector='repo-delete-proceed-button']",
+      "button[data-disable-invalid][type='submit']",
+    ].join(",");
+
+    scope.querySelectorAll(buttonSelectors).forEach((button) => {
+      if (!(button instanceof HTMLButtonElement)) return;
+
+      button.disabled = false;
+      button.removeAttribute("disabled");
+    });
+  }
+
+  function syncConfirmedInput(input, confirmationText) {
+    if (input.value !== confirmationText) return;
+
+    clearInvalidState(input);
+    enableConfirmationButtons(input);
   }
 
   function fillConfirmationInput(input) {
@@ -126,10 +173,16 @@
     if (input.disabled || input.readOnly) return;
 
     const confirmationText = getConfirmationText(input);
-    if (!confirmationText || input.value === confirmationText) return;
+    if (!confirmationText) return;
+
+    if (input.value === confirmationText) {
+      syncConfirmedInput(input, confirmationText);
+      return;
+    }
 
     setNativeInputValue(input, confirmationText);
     notifyInputChanged(input);
+    syncConfirmedInput(input, confirmationText);
   }
 
   function fillConfirmations(root = document) {
